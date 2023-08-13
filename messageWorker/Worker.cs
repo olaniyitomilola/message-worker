@@ -1,4 +1,8 @@
-﻿namespace messageWorker;
+﻿using static System.Net.WebRequestMethods;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace messageWorker;
 
 public class Worker : BackgroundService
 
@@ -8,6 +12,9 @@ public class Worker : BackgroundService
 
     private const int MINUTE = 5;
     private const int SECONDS = 1000;
+
+    private string firstRoot = "https://api.coingecko.com/api/v3/ping";
+    private string root = "https://api.coingecko.com/api/v3/simple/price?ids=akash-network&vs_currencies=usd";
 
     private HttpClient client;
 
@@ -49,10 +56,29 @@ public class Worker : BackgroundService
 
             try
             {
-                var result = await client.GetAsync("https://www.thetomilola.com");
+                var result = await client.GetAsync(root);
                 if (result.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("The Website is up. Status Code {statusCode}", result.StatusCode);
+                    //GET THE PRICE OF AKASH AND SET ALERT WHEN IT GOES LOWER
+                    //This is still in string format, convert to JSON
+                    var response = await result.Content.ReadAsStringAsync();
+
+                    //cannot write object to log
+                    JObject obj = JObject.Parse(response);
+
+                    if ((decimal)obj["akash-network"]["usd"] > 1)
+                    {
+                        _logger.LogInformation("Price is down, Akash is {price}", (string) obj["akash-network"]["usd"]);
+                        Console.WriteLine($"Problem, Akash is down, Price is {obj["akash-network"]["usd"]}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("nothing");
+                    }
+
+                    //Console.WriteLine(obj["akash-network"]);
+
+
                 }
                 else
                 {
