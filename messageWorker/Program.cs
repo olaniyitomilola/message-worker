@@ -1,11 +1,60 @@
 ﻿using messageWorker;
+using Serilog;
 
-IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices(services =>
+
+public class Program
+{
+    public static void Main(string[] args)
     {
-        services.AddHostedService<Worker>();
-    })
-    .Build();
+        //serilog conf
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
+            .Enrich.FromLogContext()
+            .WriteTo.File(@"/Users/tomilolaolaniyi/Projects/messageWorkerApp/log.txt")
+            .CreateLogger();
+        try
+        {
 
-host.Run();
+            Log.Information("Starting up the service {time}", DateTime.Now);
+            CreateHostBuilder(args)
+            .Build()
+            .Run();
+
+            return;
+
+        }
+
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "There was a problem starting up service");
+            return;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
+
+
+        
+    }
+
+
+
+
+
+    public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+            .ConfigureServices(services =>
+            {
+                services.AddHostedService<Worker>();
+            })
+            .UseSerilog();
+
+
+}
+
+
+
+
 
