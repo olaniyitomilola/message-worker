@@ -66,7 +66,7 @@ public class Worker : BackgroundService
                     //cannot write object to log
                     JObject obj = JObject.Parse(response);
 
-                    if ((decimal)obj["akash-network"]["usd"] > 1)
+                    if ((decimal) obj["akash-network"]["usd"] > 1)
                     {
                         _logger.LogInformation("Price is down, Akash is {price}", (string) obj["akash-network"]["usd"]);
                         Console.WriteLine($"Problem, Akash is down, Price is {obj["akash-network"]["usd"]}");

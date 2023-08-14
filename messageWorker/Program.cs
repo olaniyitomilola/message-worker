@@ -6,12 +6,14 @@ public class Program
 {
     public static void Main(string[] args)
     {
+
+        var path = Directory.GetCurrentDirectory();
         //serilog conf
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .MinimumLevel.Override("Microsoft", Serilog.Events.LogEventLevel.Warning)
             .Enrich.FromLogContext()
-            .WriteTo.File(@"/Users/tomilolaolaniyi/Projects/messageWorkerApp/log.txt")
+            .WriteTo.File($"{Path.Combine(path,"log.txt")}")
             .CreateLogger();
         try
         {
