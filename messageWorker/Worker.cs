@@ -1,6 +1,8 @@
 ﻿using static System.Net.WebRequestMethods;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 
 namespace messageWorker;
 
@@ -10,16 +12,23 @@ public class Worker : BackgroundService
 {
     //Change delay to const
 
-    private const int MINUTE = 5;
+    private  int MINUTE = 60;
     private const int SECONDS = 1000;
+    private readonly string? API_KEY = Environment.GetEnvironmentVariable("API_KEY");
+    private decimal? StopLoss = 1.21m;
+    private decimal moon = 1.30m;
+    private bool messageSent = false;
+    private bool moonmessageSent = false;
+    private decimal? price;
 
-    private string firstRoot = "https://api.coingecko.com/api/v3/ping";
     private string root = "https://api.coingecko.com/api/v3/simple/price?ids=akash-network&vs_currencies=usd";
 
     private HttpClient client;
 
 
     private readonly ILogger<Worker> _logger;
+
+    private SendGridClient clientGrid;
 
 
 
@@ -34,6 +43,7 @@ public class Worker : BackgroundService
         //start httpclient when service starts
 
         client = new HttpClient();
+        clientGrid = new SendGridClient(API_KEY);
         return base.StartAsync(cancellationToken);
     }
 
@@ -66,14 +76,55 @@ public class Worker : BackgroundService
                     //cannot write object to log
                     JObject obj = JObject.Parse(response);
 
-                    if ((decimal) obj["akash-network"]["usd"] > 1)
+                   price = (decimal?) obj["akash-network"]?["usd"];
+
+
+
+                    if (price < StopLoss)
                     {
-                        _logger.LogInformation("Price is down, Akash is {price}", (string) obj["akash-network"]["usd"]);
-                        Console.WriteLine($"Problem, Akash is down, Price is {obj["akash-network"]["usd"]}");
-                    }
+                        _logger.LogInformation("Price is down, Akash is {price}",price);
+                        try {
+                            //shoot email
+                           await sendEmail($"Problem, Akash is down, Price is {price}");
+                            //change mail sent variable to true
+                            messageSent = true;
+                            //Multiply minutes by 2
+                            MINUTE *= 2;
+
+                        }
+                       
+                        catch(Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
+                        
+                    } 
                     else
                     {
-                        Console.WriteLine("nothing");
+                        if (price > moon)
+                        {
+                            _logger.LogInformation("Price is Up, Akash is {price}", price);
+                            try
+                            {
+                                //shoot email
+                                await sendEmail($"Dope, Akash is Mooning, Price is {price}");
+                                //change mail sent variable to true
+                                moonmessageSent = true;
+                                
+                                //Multiply minutes by 2
+                                MINUTE *= 2;
+
+                            }
+
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.Message);
+                            }
+
+                        }
+                        else { Console.WriteLine($"No Action"); }
+
+                        
                     }
 
                     //Console.WriteLine(obj["akash-network"]);
@@ -92,11 +143,24 @@ public class Worker : BackgroundService
                 _logger.LogError(ex.Message);
             }
 
-            
 
 
+            Console.WriteLine("new time set to {0} minutes", (MINUTE * SECONDS) / 60000);
             await Task.Delay(MINUTE * SECONDS, stoppingToken);
         }
+    }
+
+    private async Task sendEmail(string msg)
+    {
+        
+        var from = new EmailAddress("temps@thetomilola.com", "Price Alert Worker");
+        var to = new EmailAddress("olaniyitomilola@gmail.com", "Tomilola");
+        var subject = "Price Alert from Worker";
+        var htmlContent = $"<h1>{msg}</h1><div>check your portfolio<div>";
+        var message = MailHelper.CreateSingleEmail(from, to, subject, msg, htmlContent);
+        var response = await clientGrid.SendEmailAsync(message);
+
+        
     }
 }
 

@@ -28,5 +28,7 @@ Global
 		$1.FileWidth = 80
 		$1.TabsToSpaces = True
 		$1.scope = text/plain
+		$0.DotNetNamingPolicy = $2
+		$2.DirectoryNamespaceAssociation = PrefixedHierarchical
 	EndGlobalSection
 EndGlobal

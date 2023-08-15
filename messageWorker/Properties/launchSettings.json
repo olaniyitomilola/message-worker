@@ -3,7 +3,8 @@
     "messageWorker": {
       "commandName": "Project",
       "environmentVariables": {
-        "DOTNET_ENVIRONMENT": "Development"
+        "DOTNET_ENVIRONMENT": "Development",
+        "API_KEY": "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"
       },
       "dotnetRunMessages": true
     }
